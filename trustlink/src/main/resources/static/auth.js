@@ -14,26 +14,34 @@ async function login() {
             body: JSON.stringify({ email, password })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            result.innerText = "Invalid email or password";
+            result.style.color = "red";
+            result.innerText = data.message || "Invalid email or password";
             return;
         }
 
-        const data = await response.json();
+        localStorage.setItem("token", data.token || "");
+        localStorage.setItem("role", data.role || "");
+        localStorage.setItem("email", data.email || "");
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("email", data.email);
+        result.style.color = "green";
+        result.innerText = data.message || "Login successful";
 
         if (data.role === "ADMIN") {
             window.location.href = "/dashboard-admin.html";
         } else if (data.role === "PROVIDER") {
             window.location.href = "/dashboard-provider.html";
-        } else {
+        } else if (data.role === "USER") {
             window.location.href = "/dashboard-user.html";
+        } else {
+            result.style.color = "red";
+            result.innerText = "Login succeeded, but role not found";
         }
     } catch (error) {
         console.error(error);
+        result.style.color = "red";
         result.innerText = "Error while logging in";
     }
 }

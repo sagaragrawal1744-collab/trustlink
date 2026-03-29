@@ -1,18 +1,19 @@
-
 package com.trustlink.dto;
 
 public class AuthResponse {
 
     private String token;
     private String role;
+    private String email;
     private String message;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, String role, String message) {
+    public AuthResponse(String token, String role, String email, String message) {
         this.token = token;
         this.role = role;
+        this.email = email;
         this.message = message;
     }
 
@@ -30,6 +31,14 @@ public class AuthResponse {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getMessage() {

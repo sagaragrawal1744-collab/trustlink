@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired
@@ -36,6 +37,7 @@ public class AuthController {
             AuthResponse response = new AuthResponse(
                     token,
                     existingUser.getRole(),
+                    existingUser.getEmail(),
                     "Login successful"
             );
 
@@ -43,6 +45,7 @@ public class AuthController {
         }
 
         AuthResponse response = new AuthResponse(
+                null,
                 null,
                 null,
                 "Invalid Credentials"
