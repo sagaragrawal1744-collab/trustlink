@@ -2,6 +2,7 @@ package com.trustlink.repository;
 
 import com.trustlink.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
 /*
  * This interface connects our Java code with database
@@ -10,5 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     // Custom method (we will use later for login)
-    User findByEmail(String email);
+
+    Optional<User> findByEmail(String email);
 }
