@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - TrustLink</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>TrustLink</h2>
+            <p>User Panel</p>
+            <button onclick="logout()">Logout</button>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <h1 class="page-title">User Dashboard</h1>
+                    <p class="page-subtitle">Search nearby providers, create bookings, and make payments.</p>
+                </div>
+                <div class="topbar-right">
+                    <span id="userEmail"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Search Nearby Providers</h3>
+
+                <div class="toolbar">
+                    <select id="service">
+                        <option value="plumber">Plumber</option>
+                        <option value="electrician">Electrician</option>
+                        <option value="carpenter">Carpenter</option>
+                    </select>
+
+                    <select id="location">
+                        <option value="Mathura">Mathura</option>
+                        <option value="Agra">Agra</option>
+                        <option value="Delhi">Delhi</option>
+                    </select>
+
+                    <button class="btn btn-primary" onclick="loadProviders()">Search</button>
+                </div>
+
+                <div id="providers"></div>
+            </div>
+
+            <div class="card">
+                <h3>My Bookings</h3>
+                <div id="bookings"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/user.js"></script>
+</body>
+</html>
