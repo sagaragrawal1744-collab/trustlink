@@ -13,8 +13,22 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/login.html",
+                                "/register.html",
+                                "/styles.css",
+                                "/auth.js",
+                                "/admin.js",
+                                "/provider.js",
+                                "/user.js",
+                                "/api/auth/**",
+                                "/auth/**"
+                        ).permitAll()
                         .anyRequest().permitAll()
-                );
+                )
+                .formLogin(form -> form.disable());
 
         return http.build();
     }
