@@ -29,7 +29,11 @@ public class SecurityConfig {
                                 "/dashboard-admin.html",
                                 "/dashboard-provider.html",
                                 "/dashboard-user.html",
-                                "/auth/**"
+                                "/auth/**",
+                                "/admin/**",
+                                "/providers/**",
+                                "/bookings/**",
+                                "/payments/**"
                         ).permitAll()
                         .anyRequest().permitAll()
                 )

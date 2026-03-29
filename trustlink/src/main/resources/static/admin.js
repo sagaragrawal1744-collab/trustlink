@@ -1,27 +1,31 @@
 const adminToken = localStorage.getItem("token");
-const adminRole = localStorage.getItem("role");
 const adminEmail = localStorage.getItem("email");
 
-if (!adminToken || adminRole !== "ADMIN") {
-    alert("Please login as admin");
-    window.location.href = "/login.html";
-}
-
-document.getElementById("userEmail").innerText = adminEmail || "Admin";
-
-function logout() {
-    localStorage.clear();
-    window.location.href = "/login.html";
-}
-
 function statusBadge(status) {
-    return `<span class="status-badge status-${status}">${status}</span>`;
+    if (!status) return `<span class="status-badge">UNKNOWN</span>`;
+    return `<span class="status-badge status-${String(status).toLowerCase()}">${status}</span>`;
 }
 
-let overviewChartInstance = null;
-let revenueChartInstance = null;
+async function fetchWithAuth(url) {
+    const response = await fetch(url, {
+        headers: {
+            "Authorization": "Bearer " + adminToken
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error("Request failed: " + response.status);
+    }
+
+    return response.json();
+}
 
 async function loadDashboard() {
+    const emailBox = document.getElementById("adminEmail");
+    if (emailBox) {
+        emailBox.innerText = adminEmail || "admin@gmail.com";
+    }
+
     await loadStats();
     await loadPendingProviders();
     await loadProviders();
@@ -30,266 +34,163 @@ async function loadDashboard() {
 }
 
 async function loadStats() {
-    const response = await fetch("http://localhost:8080/admin/dashboard", {
-        headers: {
-            "Authorization": "Bearer " + adminToken
-        }
-    });
+    const statsBox = document.getElementById("stats");
 
-    const data = await response.json();
+    try {
+        const data = await fetchWithAuth("/admin/dashboard");
 
-    document.getElementById("stats").innerHTML = `
-        <div class="stat-card">
-            <div class="label">Total Users</div>
-            <div class="value">${data.totalUsers}</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Total Providers</div>
-            <div class="value">${data.totalProviders}</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Total Bookings</div>
-            <div class="value">${data.totalBookings}</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Total Payments</div>
-            <div class="value">${data.totalPayments}</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Total Revenue</div>
-            <div class="value">₹${data.totalRevenue}</div>
-        </div>
-    `;
-
-    renderOverviewChart(data);
-    renderRevenueChart(data);
-}
-
-function renderOverviewChart(data) {
-    const ctx = document.getElementById("overviewChart");
-
-    if (overviewChartInstance) {
-        overviewChartInstance.destroy();
+        statsBox.innerHTML = `
+            <div class="stat-card">
+                <div class="label">Total Users</div>
+                <div class="value">${data.totalUsers ?? 0}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Providers</div>
+                <div class="value">${data.totalProviders ?? 0}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Bookings</div>
+                <div class="value">${data.totalBookings ?? 0}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Payments</div>
+                <div class="value">${data.totalPayments ?? 0}</div>
+            </div>
+        `;
+    } catch (error) {
+        console.error(error);
+        statsBox.innerHTML = `<div class="empty-box">Failed to load dashboard stats.</div>`;
     }
-
-    overviewChartInstance = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-            labels: ["Users", "Providers", "Bookings", "Payments"],
-            datasets: [{
-                data: [
-                    data.totalUsers,
-                    data.totalProviders,
-                    data.totalBookings,
-                    data.totalPayments
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: "bottom"
-                }
-            }
-        }
-    });
-}
-
-function renderRevenueChart(data) {
-    const ctx = document.getElementById("revenueChart");
-
-    if (revenueChartInstance) {
-        revenueChartInstance.destroy();
-    }
-
-    revenueChartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: ["Revenue", "Bookings", "Payments"],
-            datasets: [{
-                label: "Business Summary",
-                data: [
-                    data.totalRevenue,
-                    data.totalBookings,
-                    data.totalPayments
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
 }
 
 async function loadPendingProviders() {
-    const response = await fetch("http://localhost:8080/admin/pending-providers", {
-        headers: {
-            "Authorization": "Bearer " + adminToken
+    const box = document.getElementById("pendingProviders");
+    box.innerHTML = `<p class="loading">Loading pending providers...</p>`;
+
+    try {
+        const data = await fetchWithAuth("/admin/providers/pending");
+
+        if (!data.length) {
+            box.innerHTML = `<div class="empty-box">No pending providers.</div>`;
+            return;
         }
-    });
 
-    const data = await response.json();
-    const box = document.getElementById("pendingProvidersList");
-
-    if (!data.length) {
-        box.innerHTML = `<div class="empty-box">No pending providers.</div>`;
-        return;
-    }
-
-    let html = "";
-    data.forEach(p => {
-        html += `
-            <div class="card">
-                <h4>${p.name}</h4>
-                <p><strong>Email:</strong> ${p.email}</p>
-                <p><strong>Service:</strong> ${p.serviceType}</p>
-                <p><strong>Location:</strong> ${p.location}</p>
-                <p><strong>Phone:</strong> ${p.phone}</p>
-                <p><strong>Status:</strong> ${p.approvalStatus}</p>
-
-                <div class="approval-actions">
-                    <button class="btn btn-success" onclick="approveProvider(${p.id})">Approve</button>
-                    <button class="btn btn-danger" onclick="rejectProvider(${p.id})">Reject</button>
+        let html = "";
+        data.forEach(provider => {
+            html += `
+                <div class="list-card">
+                    <div><strong>${provider.name ?? "No Name"}</strong></div>
+                    <div>${provider.email ?? "No Email"}</div>
+                    <div>${statusBadge(provider.status)}</div>
                 </div>
-            </div>
-        `;
-    });
+            `;
+        });
 
-    box.innerHTML = html;
-}
-
-async function approveProvider(providerId) {
-    const response = await fetch(`http://localhost:8080/admin/approve-provider?providerId=${providerId}`, {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + adminToken
-        }
-    });
-
-    if (!response.ok) {
-        alert("Failed to approve provider");
-        return;
+        box.innerHTML = html;
+    } catch (error) {
+        console.error(error);
+        box.innerHTML = `<div class="empty-box">Failed to load pending providers.</div>`;
     }
-
-    alert("Provider approved successfully");
-    loadDashboard();
-}
-
-async function rejectProvider(providerId) {
-    const response = await fetch(`http://localhost:8080/admin/reject-provider?providerId=${providerId}`, {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + adminToken
-        }
-    });
-
-    if (!response.ok) {
-        alert("Failed to reject provider");
-        return;
-    }
-
-    alert("Provider rejected successfully");
-    loadDashboard();
 }
 
 async function loadProviders() {
-    const response = await fetch("http://localhost:8080/admin/providers", {
-        headers: {
-            "Authorization": "Bearer " + adminToken
+    const box = document.getElementById("allProviders");
+    box.innerHTML = `<p class="loading">Loading providers...</p>`;
+
+    try {
+        const data = await fetchWithAuth("/admin/providers");
+
+        if (!data.length) {
+            box.innerHTML = `<div class="empty-box">No providers found.</div>`;
+            return;
         }
-    });
 
-    const data = await response.json();
-    const box = document.getElementById("providersList");
+        let html = "";
+        data.forEach(provider => {
+            html += `
+                <div class="list-card">
+                    <div><strong>${provider.name ?? "No Name"}</strong></div>
+                    <div>${provider.email ?? "No Email"}</div>
+                    <div>Role: ${provider.role ?? "PROVIDER"}</div>
+                    <div>${statusBadge(provider.status)}</div>
+                </div>
+            `;
+        });
 
-    if (!data.length) {
-        box.innerHTML = `<div class="empty-box">No providers found.</div>`;
-        return;
+        box.innerHTML = html;
+    } catch (error) {
+        console.error(error);
+        box.innerHTML = `<div class="empty-box">Failed to load providers.</div>`;
     }
-
-    let html = "";
-    data.forEach(p => {
-        html += `
-            <div class="card">
-                <h4>${p.name}</h4>
-                <p><strong>Email:</strong> ${p.email}</p>
-                <p><strong>Service:</strong> ${p.serviceType}</p>
-                <p><strong>Location:</strong> ${p.location}</p>
-                <p><strong>Phone:</strong> ${p.phone}</p>
-                <p><strong>Approval:</strong> ${p.approvalStatus}</p>
-            </div>
-        `;
-    });
-
-    box.innerHTML = html;
 }
 
 async function loadBookings() {
-    const response = await fetch("http://localhost:8080/admin/bookings", {
-        headers: {
-            "Authorization": "Bearer " + adminToken
+    const box = document.getElementById("allBookings");
+    box.innerHTML = `<p class="loading">Loading bookings...</p>`;
+
+    try {
+        const data = await fetchWithAuth("/admin/bookings");
+
+        if (!data.length) {
+            box.innerHTML = `<div class="empty-box">No bookings found.</div>`;
+            return;
         }
-    });
 
-    const data = await response.json();
-    const box = document.getElementById("bookingsList");
+        let html = "";
+        data.forEach(booking => {
+            html += `
+                <div class="list-card">
+                    <div><strong>Booking ID:</strong> ${booking.id ?? "-"}</div>
+                    <div><strong>User:</strong> ${booking.userEmail ?? booking.email ?? "-"}</div>
+                    <div><strong>Status:</strong> ${statusBadge(booking.status)}</div>
+                </div>
+            `;
+        });
 
-    if (!data.length) {
-        box.innerHTML = `<div class="empty-box">No bookings found.</div>`;
-        return;
+        box.innerHTML = html;
+    } catch (error) {
+        console.error(error);
+        box.innerHTML = `<div class="empty-box">Failed to load bookings.</div>`;
     }
-
-    let html = "";
-    data.forEach(b => {
-        html += `
-            <div class="card">
-                <h4>Booking #${b.id}</h4>
-                <p><strong>User:</strong> ${b.userEmail}</p>
-                <p><strong>Provider:</strong> ${b.providerEmail}</p>
-                <p><strong>Status:</strong> ${statusBadge(b.status)}</p>
-            </div>
-        `;
-    });
-
-    box.innerHTML = html;
 }
 
 async function loadPayments() {
-    const response = await fetch("http://localhost:8080/admin/payments", {
-        headers: {
-            "Authorization": "Bearer " + adminToken
+    const box = document.getElementById("allPayments");
+    box.innerHTML = `<p class="loading">Loading payments...</p>`;
+
+    try {
+        const data = await fetchWithAuth("/admin/payments");
+
+        if (!data.length) {
+            box.innerHTML = `<div class="empty-box">No payments found.</div>`;
+            return;
         }
-    });
 
-    const data = await response.json();
-    const box = document.getElementById("paymentsList");
+        let html = "";
+        data.forEach(payment => {
+            html += `
+                <div class="list-card">
+                    <div><strong>Payment ID:</strong> ${payment.id ?? "-"}</div>
+                    <div><strong>Booking ID:</strong> ${payment.bookingId ?? "-"}</div>
+                    <div><strong>Amount:</strong> ${payment.amount ?? 0}</div>
+                    <div><strong>Status:</strong> ${statusBadge(payment.status)}</div>
+                    <div><strong>Method:</strong> ${payment.method ?? "-"}</div>
+                </div>
+            `;
+        });
 
-    if (!data.length) {
-        box.innerHTML = `<div class="empty-box">No payments found.</div>`;
-        return;
+        box.innerHTML = html;
+    } catch (error) {
+        console.error(error);
+        box.innerHTML = `<div class="empty-box">Failed to load payments.</div>`;
     }
-
-    let html = "";
-    data.forEach(p => {
-        html += `
-            <div class="card">
-                <h4>Payment #${p.id}</h4>
-                <p><strong>Booking ID:</strong> ${p.bookingId}</p>
-                <p><strong>User:</strong> ${p.userEmail}</p>
-                <p><strong>Amount:</strong> ₹${p.amount}</p>
-                <p><strong>Method:</strong> ${p.method}</p>
-                <p><strong>Status:</strong> ${statusBadge(p.status)}</p>
-            </div>
-        `;
-    });
-
-    box.innerHTML = html;
 }
 
-loadDashboard();
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("email");
+    window.location.href = "/login.html";
+}
+
+window.onload = loadDashboard;
