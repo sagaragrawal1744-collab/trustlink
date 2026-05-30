@@ -1,29 +1,19 @@
-TrustLink
-<br>
-A trust verification platform designed to help users verify profiles and manage trusted connections.
-<br>
-Features
-<br>
-User Registration
-Login Authentication
-Profile Management
-Verification System
+# TrustLink
 
-Dashboard
-<br>
-Tech Stack
-<br>
-Java
-MySQL
-HTML
-CSS
-JavaScript
-<br>
+TrustLink is a community trust and verification platform developed as a BCA project.
 
-Future Improvements
-<br>
-OTP Verification
-AI-based Trust Score
-Mobile App Integration
-Author
+## Features
+- User Registration
+- Login Authentication
+- User Dashboard
+- Provider Dashboard
+- Admin Dashboard
+
+## Technologies Used
+- Java
+- HTML
+- CSS
+- JavaScript
+
+## Author
 Sagar Agrawal
